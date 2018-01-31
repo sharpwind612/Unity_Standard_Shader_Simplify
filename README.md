@@ -1,0 +1,2 @@
+# Unity_Standard_Shader_Simplify
+Unity_Standard_Shader_Simplify
