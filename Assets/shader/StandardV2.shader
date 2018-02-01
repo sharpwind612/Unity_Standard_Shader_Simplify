@@ -23,11 +23,11 @@ Shader "MAD/StandardV2"
 		_EmissionColor("Color", Color) = (0,0,0)
 		_EmissionMap("Emission", 2D) = "white" {}
 		
-		_DetailMask("Detail Mask", 2D) = "white" {}
+		//_DetailMask("Detail Mask", 2D) = "white" {}
 
-		_DetailAlbedoMap("Detail Albedo x2", 2D) = "grey" {}
-		_DetailNormalMapScale("Scale", Float) = 1.0
-		_DetailNormalMap("Normal Map", 2D) = "bump" {}
+		//_DetailAlbedoMap("Detail Albedo x2", 2D) = "grey" {}
+		//_DetailNormalMapScale("Scale", Float) = 1.0
+		//_DetailNormalMap("Normal Map", 2D) = "bump" {}
 
 		[Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
 
@@ -75,12 +75,13 @@ Shader "MAD/StandardV2"
 			#endif
 			return c;
 		}
-		#define UNITY_BRDF_PBS BRDF2_Unity_PBS
+		#define UNITY_BRDF_PBS BRDF1_Unity_PBS
 		//---------------------------------------
 		// Directional lightmaps & Parallax require tangent space too
-		#if (_NORMALMAP || !DIRLIGHTMAP_OFF || _PARALLAXMAP)
-			#define _TANGENT_TO_WORLD 1 
-		#endif
+		#define _TANGENT_TO_WORLD 1 
+		//#if (_NORMALMAP || !DIRLIGHTMAP_OFF || _PARALLAXMAP)
+		//	#define _TANGENT_TO_WORLD 1 
+		//#endif
 
 		#if (_DETAIL_MULX2 || _DETAIL_MUL || _DETAIL_ADD || _DETAIL_LERP)
 			#define _DETAIL 1
@@ -93,17 +94,17 @@ Shader "MAD/StandardV2"
 		sampler2D	_MainTex;
 		float4		_MainTex_ST;
 
-		sampler2D	_DetailAlbedoMap;
-		float4		_DetailAlbedoMap_ST;
+		//sampler2D	_DetailAlbedoMap;
+		//float4		_DetailAlbedoMap_ST;
 
 		sampler2D	_BumpMap;
 		half		_BumpScale;
 
-		sampler2D	_DetailMask;
-		sampler2D	_DetailNormalMap;
-		half		_DetailNormalMapScale;
+		//sampler2D	_DetailMask;
+		//sampler2D	_DetailNormalMap;
+		//half		_DetailNormalMapScale;
 
-		sampler2D	_SpecGlossMap;
+		//sampler2D	_SpecGlossMap;
 		sampler2D	_MetallicGlossMap;
 		half		_Metallic;
 		half		_Glossiness;
@@ -137,39 +138,40 @@ Shader "MAD/StandardV2"
 
 		float4 TexCoords(VertexInput v)
 		{
-			float4 texcoord;
+			float4 texcoord = float4(0,0,0,0);
 			texcoord.xy = TRANSFORM_TEX(v.uv0, _MainTex); // Always source from uv0
-			texcoord.zw = TRANSFORM_TEX(((_UVSec == 0) ? v.uv0 : v.uv1), _DetailAlbedoMap);
+			//texcoord.zw = TRANSFORM_TEX(((_UVSec == 0) ? v.uv0 : v.uv1), _DetailAlbedoMap);
 			return texcoord;
 		}		
 
-		half DetailMask(float2 uv)
-		{
-			return tex2D (_DetailMask, uv).a;
-		}
+		//half DetailMask(float2 uv)
+		//{
+		//	return tex2D (_DetailMask, uv).a;
+		//}
 
 		half3 Albedo(float4 texcoords)
 		{
 			half3 albedo = _Color.rgb * tex2D (_MainTex, texcoords.xy).rgb;
-		#if _DETAIL
-			#if (SHADER_TARGET < 30)
-				// SM20: instruction count limitation
-				// SM20: no detail mask
-				half mask = 1; 
-			#else
-				half mask = DetailMask(texcoords.xy);
-			#endif
-			half3 detailAlbedo = tex2D (_DetailAlbedoMap, texcoords.zw).rgb;
-			#if _DETAIL_MULX2
-				albedo *= LerpWhiteTo (detailAlbedo * unity_ColorSpaceDouble.rgb, mask);
-			#elif _DETAIL_MUL
-				albedo *= LerpWhiteTo (detailAlbedo, mask);
-			#elif _DETAIL_ADD
-				albedo += detailAlbedo * mask;
-			#elif _DETAIL_LERP
-				albedo = lerp (albedo, detailAlbedo, mask);
-			#endif
-		#endif
+		////remove 
+		//#if _DETAIL
+		//	#if (SHADER_TARGET < 30)
+		//		// SM20: instruction count limitation
+		//		// SM20: no detail mask
+		//		half mask = 1; 
+		//	#else
+		//		half mask = DetailMask(texcoords.xy);
+		//	#endif
+		//	half3 detailAlbedo = tex2D (_DetailAlbedoMap, texcoords.zw).rgb;
+		//	#if _DETAIL_MULX2
+		//		albedo *= LerpWhiteTo (detailAlbedo * unity_ColorSpaceDouble.rgb, mask);
+		//	#elif _DETAIL_MUL
+		//		albedo *= LerpWhiteTo (detailAlbedo, mask);
+		//	#elif _DETAIL_ADD
+		//		albedo += detailAlbedo * mask;
+		//	#elif _DETAIL_LERP
+		//		albedo = lerp (albedo, detailAlbedo, mask);
+		//	#endif
+		//#endif
 			return albedo;
 		}
 
@@ -221,7 +223,7 @@ Shader "MAD/StandardV2"
 		#endif
 		}
 
-		#ifdef _NORMALMAP
+		//#ifdef _NORMALMAP
 		half3 NormalInTangentSpace(float4 texcoords)
 		{
 			half3 normalTangent = UnpackScaleNormal(tex2D (_BumpMap, texcoords.xy), _BumpScale);
@@ -244,7 +246,7 @@ Shader "MAD/StandardV2"
 		#endif
 			return normalTangent;
 		}
-		#endif
+		//#endif
 
 		float4 Parallax (float4 texcoords, half3 viewDir)
 		{
@@ -371,7 +373,7 @@ Shader "MAD/StandardV2"
 
 		half3 PerPixelWorldNormal(float4 i_tex, half4 tangentToWorld[3])
 		{
-		#ifdef _NORMALMAP
+		//#ifdef _NORMALMAP
 			half3 tangent = tangentToWorld[0].xyz;
 			half3 binormal = tangentToWorld[1].xyz;
 			half3 normal = tangentToWorld[2].xyz;
@@ -389,9 +391,9 @@ Shader "MAD/StandardV2"
 
 			half3 normalTangent = NormalInTangentSpace(i_tex);
 			half3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); // @TODO: see if we can squeeze this normalize on SM2.0 as well
-		#else
-			half3 normalWorld = normalize(tangentToWorld[2].xyz);
-		#endif
+		//#else
+		//	half3 normalWorld = normalize(tangentToWorld[2].xyz);
+		//#endif
 			return normalWorld;
 		}
 
@@ -937,7 +939,7 @@ Shader "MAD/StandardV2"
 			#pragma target 3.0
 			// TEMPORARY: GLES2.0 temporarily disabled to prevent errors spam on devices without textureCubeLodEXT
 			#pragma exclude_renderers gles
-			#pragma shader_feature _NORMALMAP
+			//#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
 			#pragma shader_feature _METALLICGLOSSMAP 
@@ -970,7 +972,7 @@ Shader "MAD/StandardV2"
 
 			// -------------------------------------		
 			//#pragma shader_feature _NORMALMAP
-			#pragma shader_feature _NORMALMAP
+			//#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _METALLICGLOSSMAP
 			#pragma shader_feature ___ _DETAIL_MULX2

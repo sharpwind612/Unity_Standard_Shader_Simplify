@@ -36,13 +36,13 @@ internal class MADStandardShaderGUI : ShaderGUI
 		public static GUIContent heightMapText = new GUIContent("Height Map", "Height Map (G)");
 		public static GUIContent occlusionText = new GUIContent("Occlusion", "Occlusion (G)");
 		public static GUIContent emissionText = new GUIContent("Emission", "Emission (RGB)");
-		public static GUIContent detailMaskText = new GUIContent("Detail Mask", "Mask for Secondary Maps (A)");
-		public static GUIContent detailAlbedoText = new GUIContent("Detail Albedo x2", "Albedo (RGB) multiplied by 2");
-		public static GUIContent detailNormalMapText = new GUIContent("Normal Map", "Normal Map");
+        //public static GUIContent detailMaskText = new GUIContent("Detail Mask", "Mask for Secondary Maps (A)");
+        //public static GUIContent detailAlbedoText = new GUIContent("Detail Albedo x2", "Albedo (RGB) multiplied by 2");
+        //public static GUIContent detailNormalMapText = new GUIContent("Normal Map", "Normal Map");
 
 		public static string whiteSpaceString = " ";
 		public static string primaryMapsText = "Main Maps";
-		public static string secondaryMapsText = "Secondary Maps";
+        //public static string secondaryMapsText = "Secondary Maps";
 		public static string renderingMode = "Rendering Mode";
 		public static GUIContent emissiveWarning = new GUIContent ("Emissive value is animated but the material has not been configured to support emissive. Please make sure the material itself has some amount of emissive.");
 		public static GUIContent emissiveColorWarning = new GUIContent ("Ensure emissive color is non-black for emission to have effect.");
@@ -66,11 +66,11 @@ internal class MADStandardShaderGUI : ShaderGUI
 	MaterialProperty heightMap = null;
 	MaterialProperty emissionColorForRendering = null;
 	MaterialProperty emissionMap = null;
-	MaterialProperty detailMask = null;
-	MaterialProperty detailAlbedoMap = null;
-	MaterialProperty detailNormalMapScale = null;
-	MaterialProperty detailNormalMap = null;
-	MaterialProperty uvSetSecondary = null;
+    //MaterialProperty detailMask = null;
+    //MaterialProperty detailAlbedoMap = null;
+    //MaterialProperty detailNormalMapScale = null;
+    //MaterialProperty detailNormalMap = null;
+    //MaterialProperty uvSetSecondary = null;
 
 	MaterialEditor m_MaterialEditor;
 	WorkflowMode m_WorkflowMode = WorkflowMode.Specular;
@@ -103,11 +103,11 @@ internal class MADStandardShaderGUI : ShaderGUI
 		occlusionMap = FindProperty ("_OcclusionMap", props);
 		emissionColorForRendering = FindProperty ("_EmissionColor", props);
 		emissionMap = FindProperty ("_EmissionMap", props);
-		detailMask = FindProperty ("_DetailMask", props);
-		detailAlbedoMap = FindProperty ("_DetailAlbedoMap", props);
-		detailNormalMapScale = FindProperty ("_DetailNormalMapScale", props);
-		detailNormalMap = FindProperty ("_DetailNormalMap", props);
-		uvSetSecondary = FindProperty ("_UVSec", props);
+        //detailMask = FindProperty ("_DetailMask", props);
+        //detailAlbedoMap = FindProperty ("_DetailAlbedoMap", props);
+        //detailNormalMapScale = FindProperty ("_DetailNormalMapScale", props);
+        //detailNormalMap = FindProperty ("_DetailNormalMap", props);
+        //uvSetSecondary = FindProperty ("_UVSec", props);
 	}
 
 	public override void OnGUI (MaterialEditor materialEditor, MaterialProperty[] props)
@@ -144,8 +144,8 @@ internal class MADStandardShaderGUI : ShaderGUI
 			m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, bumpMap, bumpMap.textureValue != null ? bumpScale : null);
 			m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap, heightMap.textureValue != null ? heigtMapScale : null);
 			m_MaterialEditor.TexturePropertySingleLine(Styles.occlusionText, occlusionMap, occlusionMap.textureValue != null ? occlusionStrength : null);
-			DoEmissionArea(material);
-			m_MaterialEditor.TexturePropertySingleLine(Styles.detailMaskText, detailMask);
+			DoEmissionArea(material); 
+            //m_MaterialEditor.TexturePropertySingleLine(Styles.detailMaskText, detailMask);
 			EditorGUI.BeginChangeCheck();
 			m_MaterialEditor.TextureScaleOffsetProperty(albedoMap);
 			if (EditorGUI.EndChangeCheck())
@@ -154,11 +154,11 @@ internal class MADStandardShaderGUI : ShaderGUI
 			EditorGUILayout.Space();
 
 			// Secondary properties
-			GUILayout.Label(Styles.secondaryMapsText, EditorStyles.boldLabel);
-			m_MaterialEditor.TexturePropertySingleLine(Styles.detailAlbedoText, detailAlbedoMap);
-			m_MaterialEditor.TexturePropertySingleLine(Styles.detailNormalMapText, detailNormalMap, detailNormalMapScale);
-			m_MaterialEditor.TextureScaleOffsetProperty(detailAlbedoMap);
-			m_MaterialEditor.ShaderProperty(uvSetSecondary, Styles.uvSetLabel.text);
+            //GUILayout.Label(Styles.secondaryMapsText, EditorStyles.boldLabel);
+            //m_MaterialEditor.TexturePropertySingleLine(Styles.detailAlbedoText, detailAlbedoMap);
+            //m_MaterialEditor.TexturePropertySingleLine(Styles.detailNormalMapText, detailNormalMap, detailNormalMapScale);
+            //m_MaterialEditor.TextureScaleOffsetProperty(detailAlbedoMap);
+            //m_MaterialEditor.ShaderProperty(uvSetSecondary, Styles.uvSetLabel.text);
 		}
 		if (EditorGUI.EndChangeCheck())
 		{
