@@ -383,4 +383,6 @@
 			Tags { "LightMode" = "ShadowCaster" }
 		}
     }
+
+	CustomEditor "StandardShaderGUI"
 }

@@ -1,9 +1,9 @@
 using System;
 using UnityEngine;
-
+using UnityEditor;
 namespace UnityEditor
 {
-internal class StandardShaderGUI : ShaderGUI
+internal class MADStandardShaderGUI : ShaderGUI
 {
 	private enum WorkflowMode
 	{
