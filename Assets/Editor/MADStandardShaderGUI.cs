@@ -33,7 +33,7 @@ internal class MADStandardShaderGUI : ShaderGUI
 		public static GUIContent metallicMapText = new GUIContent("Metallic", "Metallic (R) and Smoothness (A)");
 		public static GUIContent smoothnessText = new GUIContent("Smoothness", "");
 		public static GUIContent normalMapText = new GUIContent("Normal Map", "Normal Map");
-		public static GUIContent heightMapText = new GUIContent("Height Map", "Height Map (G)");
+        //public static GUIContent heightMapText = new GUIContent("Height Map", "Height Map (G)");
 		public static GUIContent occlusionText = new GUIContent("Occlusion", "Occlusion (G)");
 		public static GUIContent emissionText = new GUIContent("Emission", "Emission (RGB)");
         //public static GUIContent detailMaskText = new GUIContent("Detail Mask", "Mask for Secondary Maps (A)");
@@ -62,8 +62,8 @@ internal class MADStandardShaderGUI : ShaderGUI
 	MaterialProperty bumpMap = null;
 	MaterialProperty occlusionStrength = null;
 	MaterialProperty occlusionMap = null;
-	MaterialProperty heigtMapScale = null;
-	MaterialProperty heightMap = null;
+    //MaterialProperty heigtMapScale = null;
+    //MaterialProperty heightMap = null;
 	MaterialProperty emissionColorForRendering = null;
 	MaterialProperty emissionMap = null;
     //MaterialProperty detailMask = null;
@@ -97,8 +97,8 @@ internal class MADStandardShaderGUI : ShaderGUI
 		smoothness = FindProperty ("_Glossiness", props);
 		bumpScale = FindProperty ("_BumpScale", props);
 		bumpMap = FindProperty ("_BumpMap", props);
-		heigtMapScale = FindProperty ("_Parallax", props);
-		heightMap = FindProperty("_ParallaxMap", props);
+        //heigtMapScale = FindProperty ("_Parallax", props);
+        //heightMap = FindProperty("_ParallaxMap", props);
 		occlusionStrength = FindProperty ("_OcclusionStrength", props);
 		occlusionMap = FindProperty ("_OcclusionMap", props);
 		emissionColorForRendering = FindProperty ("_EmissionColor", props);
@@ -142,7 +142,7 @@ internal class MADStandardShaderGUI : ShaderGUI
 			DoAlbedoArea(material);
 			DoSpecularMetallicArea();
 			m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, bumpMap, bumpMap.textureValue != null ? bumpScale : null);
-			m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap, heightMap.textureValue != null ? heigtMapScale : null);
+            //m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap, heightMap.textureValue != null ? heigtMapScale : null);
 			m_MaterialEditor.TexturePropertySingleLine(Styles.occlusionText, occlusionMap, occlusionMap.textureValue != null ? occlusionStrength : null);
 			DoEmissionArea(material); 
             //m_MaterialEditor.TexturePropertySingleLine(Styles.detailMaskText, detailMask);
@@ -345,8 +345,8 @@ internal class MADStandardShaderGUI : ShaderGUI
         //    SetKeyword (material, "_SPECGLOSSMAP", material.GetTexture ("_SpecGlossMap"));
         //else if (workflowMode == WorkflowMode.Metallic)
 		SetKeyword (material, "_METALLICGLOSSMAP", material.GetTexture ("_MetallicGlossMap"));
-		SetKeyword (material, "_PARALLAXMAP", material.GetTexture ("_ParallaxMap"));
-		SetKeyword (material, "_DETAIL_MULX2", material.GetTexture ("_DetailAlbedoMap") || material.GetTexture ("_DetailNormalMap"));
+        //SetKeyword (material, "_PARALLAXMAP", material.GetTexture ("_ParallaxMap"));
+        //SetKeyword (material, "_DETAIL_MULX2", material.GetTexture ("_DetailAlbedoMap") || material.GetTexture ("_DetailNormalMap"));
 
 		bool shouldEmissionBeEnabled = ShouldEmissionBeEnabled (material.GetColor("_EmissionColor"));
 		SetKeyword (material, "_EMISSION", shouldEmissionBeEnabled);

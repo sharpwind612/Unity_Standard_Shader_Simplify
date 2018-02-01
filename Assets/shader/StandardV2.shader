@@ -14,8 +14,8 @@ Shader "MAD/StandardV2"
 		_BumpScale("Scale", Float) = 1.0
 		_BumpMap("Normal Map", 2D) = "bump" {}
 
-		_Parallax ("Height Scale", Range (0.005, 0.08)) = 0.02
-		_ParallaxMap ("Height Map", 2D) = "black" {}
+		//_Parallax ("Height Scale", Range (0.005, 0.08)) = 0.02
+		//_ParallaxMap ("Height Map", 2D) = "black" {}
 
 		_OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
 		_OcclusionMap("Occlusion", 2D) = "white" {}
@@ -29,7 +29,7 @@ Shader "MAD/StandardV2"
 		//_DetailNormalMapScale("Scale", Float) = 1.0
 		//_DetailNormalMap("Normal Map", 2D) = "bump" {}
 
-		[Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
+		//[Enum(UV0,0,UV1,1)] _UVSec ("UV Set for secondary textures", Float) = 0
 
 
 		// Blending state
@@ -83,9 +83,9 @@ Shader "MAD/StandardV2"
 		//	#define _TANGENT_TO_WORLD 1 
 		//#endif
 
-		#if (_DETAIL_MULX2 || _DETAIL_MUL || _DETAIL_ADD || _DETAIL_LERP)
-			#define _DETAIL 1
-		#endif
+		//#if (_DETAIL_MULX2 || _DETAIL_MUL || _DETAIL_ADD || _DETAIL_LERP)
+		//	#define _DETAIL 1
+		//#endif
 
 		//---------------------------------------
 		half4		_Color;
@@ -112,9 +112,9 @@ Shader "MAD/StandardV2"
 		sampler2D	_OcclusionMap;
 		half		_OcclusionStrength;
 
-		sampler2D	_ParallaxMap;
-		half		_Parallax;
-		half		_UVSec;
+		//sampler2D	_ParallaxMap;
+		//half		_Parallax;
+		//half		_UVSec;
 
 		half4 		_EmissionColor;
 		sampler2D	_EmissionMap;
@@ -206,11 +206,11 @@ Shader "MAD/StandardV2"
 		half2 MetallicGloss(float2 uv)
 		{
 			half2 mg;
-		//#ifdef _METALLICGLOSSMAP
+		#ifdef _METALLICGLOSSMAP
 			mg = tex2D(_MetallicGlossMap, uv.xy).ra;
-		//#else
-			//mg = half2(_Metallic, _Glossiness);
-		//#endif
+		#else
+			mg = half2(_Metallic, _Glossiness);
+		#endif
 			return mg;
 		}
 
@@ -250,15 +250,17 @@ Shader "MAD/StandardV2"
 
 		float4 Parallax (float4 texcoords, half3 viewDir)
 		{
-		#if !defined(_PARALLAXMAP) || (SHADER_TARGET < 30)
-			// SM20: instruction count limitation
-			// SM20: no parallax
 			return texcoords;
-		#else
-			half h = tex2D (_ParallaxMap, texcoords.xy).g;
-			float2 offset = ParallaxOffset1Step (h, _Parallax, viewDir);
-			return float4(texcoords.xy + offset, texcoords.zw + offset);
-		#endif
+		//for high option
+		//#if !defined(_PARALLAXMAP) || (SHADER_TARGET < 30)
+		//	// SM20: instruction count limitation
+		//	// SM20: no parallax
+		//	return texcoords;
+		//#else
+		//	half h = tex2D (_ParallaxMap, texcoords.xy).g;
+		//	float2 offset = ParallaxOffset1Step (h, _Parallax, viewDir);
+		//	return float4(texcoords.xy + offset, texcoords.zw + offset);
+		//#endif
 		}
 		//-------------------------------------------------------------------------------------
 		// counterpart for NormalizePerPixelNormal
@@ -397,13 +399,13 @@ Shader "MAD/StandardV2"
 			return normalWorld;
 		}
 
-		#ifdef _PARALLAXMAP
-			#define IN_VIEWDIR4PARALLAX(i) NormalizePerPixelNormal(half3(i.tangentToWorldAndParallax[0].w,i.tangentToWorldAndParallax[1].w,i.tangentToWorldAndParallax[2].w))
-			#define IN_VIEWDIR4PARALLAX_FWDADD(i) NormalizePerPixelNormal(i.viewDirForParallax.xyz)
-		#else
+		//#ifdef _PARALLAXMAP
+		//	#define IN_VIEWDIR4PARALLAX(i) NormalizePerPixelNormal(half3(i.tangentToWorldAndParallax[0].w,i.tangentToWorldAndParallax[1].w,i.tangentToWorldAndParallax[2].w))
+		//	#define IN_VIEWDIR4PARALLAX_FWDADD(i) NormalizePerPixelNormal(i.viewDirForParallax.xyz)
+		//#else
 			#define IN_VIEWDIR4PARALLAX(i) half3(0,0,0)
 			#define IN_VIEWDIR4PARALLAX_FWDADD(i) half3(0,0,0)
-		#endif
+		//#endif
 
 		#if UNITY_SPECCUBE_BOX_PROJECTION
 			#define IN_WORLDPOS(i) i.posWorld
@@ -638,13 +640,13 @@ Shader "MAD/StandardV2"
 
 			o.ambientOrLightmapUV = VertexGIForward(v, posWorld, normalWorld);
 	
-			#ifdef _PARALLAXMAP
-				TANGENT_SPACE_ROTATION;
-				half3 viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
-				o.tangentToWorldAndParallax[0].w = viewDirForParallax.x;
-				o.tangentToWorldAndParallax[1].w = viewDirForParallax.y;
-				o.tangentToWorldAndParallax[2].w = viewDirForParallax.z;
-			#endif
+			//#ifdef _PARALLAXMAP
+			//	TANGENT_SPACE_ROTATION;
+			//	half3 viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
+			//	o.tangentToWorldAndParallax[0].w = viewDirForParallax.x;
+			//	o.tangentToWorldAndParallax[1].w = viewDirForParallax.y;
+			//	o.tangentToWorldAndParallax[2].w = viewDirForParallax.z;
+			//#endif
 
 			#if UNITY_OPTIMIZE_TEXCUBELOD
 				o.reflUVW 		= reflect(o.eyeVec, normalWorld);
@@ -692,9 +694,9 @@ Shader "MAD/StandardV2"
 			UNITY_FOG_COORDS(7)
 
 			// next ones would not fit into SM2.0 limits, but they are always for SM3.0+
-		#if defined(_PARALLAXMAP)
-			half3 viewDirForParallax			: TEXCOORD8;
-		#endif
+		//#if defined(_PARALLAXMAP)
+		//	half3 viewDirForParallax			: TEXCOORD8;
+		//#endif
 		};
 
 		VertexOutputForwardAdd vertForwardAdd (VertexInput v)
@@ -730,10 +732,10 @@ Shader "MAD/StandardV2"
 			o.tangentToWorldAndLightDir[1].w = lightDir.y;
 			o.tangentToWorldAndLightDir[2].w = lightDir.z;
 
-			#ifdef _PARALLAXMAP
-				TANGENT_SPACE_ROTATION;
-				o.viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
-			#endif
+			//#ifdef _PARALLAXMAP
+			//	TANGENT_SPACE_ROTATION;
+			//	o.viewDirForParallax = mul (rotation, ObjSpaceViewDir(v.vertex));
+			//#endif
 	
 			UNITY_TRANSFER_FOG(o,o.pos);
 			return o;
@@ -943,8 +945,8 @@ Shader "MAD/StandardV2"
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
 			#pragma shader_feature _METALLICGLOSSMAP 
-			#pragma shader_feature ___ _DETAIL_MULX2
-			#pragma shader_feature _PARALLAXMAP
+			//#pragma shader_feature ___ _DETAIL_MULX2
+			//#pragma shader_feature _PARALLAXMAP
 
 			#pragma multi_compile_fwdbase
 			#pragma multi_compile_fog
@@ -972,11 +974,11 @@ Shader "MAD/StandardV2"
 
 			// -------------------------------------		
 			//#pragma shader_feature _NORMALMAP
-			//#pragma shader_feature _NORMALMAP
+			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _METALLICGLOSSMAP
-			#pragma shader_feature ___ _DETAIL_MULX2
-			#pragma shader_feature _PARALLAXMAP
+			//#pragma shader_feature ___ _DETAIL_MULX2
+			//#pragma shader_feature _PARALLAXMAP
 			
 			#pragma multi_compile_fwdadd_fullshadows
 			#pragma multi_compile_fog
