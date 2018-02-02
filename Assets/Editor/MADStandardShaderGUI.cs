@@ -61,7 +61,7 @@ internal class MADStandardShaderGUI : ShaderGUI
 	MaterialProperty bumpScale = null;
 	MaterialProperty bumpMap = null;
 	MaterialProperty occlusionStrength = null;
-	MaterialProperty occlusionMap = null;
+    //MaterialProperty occlusionMap = null;
     //MaterialProperty heigtMapScale = null;
     //MaterialProperty heightMap = null;
 	MaterialProperty emissionColorForRendering = null;
@@ -100,7 +100,7 @@ internal class MADStandardShaderGUI : ShaderGUI
         //heigtMapScale = FindProperty ("_Parallax", props);
         //heightMap = FindProperty("_ParallaxMap", props);
 		occlusionStrength = FindProperty ("_OcclusionStrength", props);
-		occlusionMap = FindProperty ("_OcclusionMap", props);
+        //occlusionMap = FindProperty ("_OcclusionMap", props);
 		emissionColorForRendering = FindProperty ("_EmissionColor", props);
 		emissionMap = FindProperty ("_EmissionMap", props);
         //detailMask = FindProperty ("_DetailMask", props);
@@ -140,10 +140,11 @@ internal class MADStandardShaderGUI : ShaderGUI
 			// Primary properties
 			GUILayout.Label (Styles.primaryMapsText, EditorStyles.boldLabel);
 			DoAlbedoArea(material);
-			DoSpecularMetallicArea();
+			DoSpecularMetallicArea(); 
+            m_MaterialEditor.RangeProperty(occlusionStrength, "Occlusion Strength");
 			m_MaterialEditor.TexturePropertySingleLine(Styles.normalMapText, bumpMap, bumpMap.textureValue != null ? bumpScale : null);
             //m_MaterialEditor.TexturePropertySingleLine(Styles.heightMapText, heightMap, heightMap.textureValue != null ? heigtMapScale : null);
-			m_MaterialEditor.TexturePropertySingleLine(Styles.occlusionText, occlusionMap, occlusionMap.textureValue != null ? occlusionStrength : null);
+            //m_MaterialEditor.TexturePropertySingleLine(Styles.occlusionText, occlusionMap, occlusionMap.textureValue != null ? occlusionStrength : null);
 			DoEmissionArea(material); 
             //m_MaterialEditor.TexturePropertySingleLine(Styles.detailMaskText, detailMask);
 			EditorGUI.BeginChangeCheck();

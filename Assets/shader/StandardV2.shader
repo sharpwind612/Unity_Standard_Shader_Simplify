@@ -19,7 +19,7 @@ Shader "MAD/StandardV2"
 		//_ParallaxMap ("Height Map", 2D) = "black" {}
 
 		_OcclusionStrength("Strength", Range(0.0, 1.0)) = 1.0
-		_OcclusionMap("Occlusion", 2D) = "white" {}
+		//_OcclusionMap("Occlusion", 2D) = "white" {}
 
 		_EmissionColor("Color", Color) = (0,0,0)
 		_EmissionMap("Emission", 2D) = "white" {}
@@ -136,7 +136,7 @@ Shader "MAD/StandardV2"
 		half		_Metallic;
 		half		_Glossiness;
 
-		sampler2D	_OcclusionMap;
+		//sampler2D	_OcclusionMap;
 		half		_OcclusionStrength;
 
 		//sampler2D	_ParallaxMap;
@@ -209,37 +209,39 @@ Shader "MAD/StandardV2"
 
 		half Occlusion(float2 uv)
 		{
-		#if (SHADER_TARGET < 30)
-			// SM20: instruction count limitation
-			// SM20: simpler occlusion
-			return tex2D(_OcclusionMap, uv).g;
-		#else
-			half occ = tex2D(_OcclusionMap, uv).g;
+			half occ = tex2D(_MetallicGlossMap, uv).g;
 			return LerpOneTo (occ, _OcclusionStrength);
-		#endif
+		//#if (SHADER_TARGET < 30)
+		//	// SM20: instruction count limitation
+		//	// SM20: simpler occlusion
+		//	return tex2D(_OcclusionMap, uv).g;
+		//#else
+		//	half occ = tex2D(_OcclusionMap, uv).g;
+		//	return LerpOneTo (occ, _OcclusionStrength);
+		//#endif
 		}
 
-		half4 SpecularGloss(float2 uv)
-		{
-			half4 sg;
-		#ifdef _SPECGLOSSMAP
-			sg = tex2D(_SpecGlossMap, uv.xy);
-		#else
-			sg = half4(_SpecColor.rgb, _Glossiness);
-		#endif
-			return sg;
-		}
+		//half4 SpecularGloss(float2 uv)
+		//{
+		//	half4 sg;
+		//#ifdef _SPECGLOSSMAP
+		//	sg = tex2D(_SpecGlossMap, uv.xy);
+		//#else
+		//	sg = half4(_SpecColor.rgb, _Glossiness);
+		//#endif
+		//	return sg;
+		//}
 
 		half2 MetallicGloss(float2 uv)
 		{
 			half2 mg;
-		#ifdef _METALLICGLOSSMAP
+		//#ifdef _METALLICGLOSSMAP
 			mg = tex2D(_MetallicGlossMap, uv.xy).ra;
 			mg.x *= _Metallic;
 			mg.y *= _Glossiness;
-		#else
-			mg = half2(_Metallic, _Glossiness);
-		#endif
+		//#else
+		//	mg = half2(_Metallic, _Glossiness);
+		//#endif
 			return mg;
 		}
 
@@ -472,22 +474,22 @@ Shader "MAD/StandardV2"
 			#define UNITY_SETUP_BRDF_INPUT SpecularSetup
 		#endif
 
-		inline FragmentCommonData SpecularSetup (float4 i_tex)
-		{
-			half4 specGloss = SpecularGloss(i_tex.xy);
-			half3 specColor = specGloss.rgb;
-			half oneMinusRoughness = specGloss.a;
+		//inline FragmentCommonData SpecularSetup (float4 i_tex)
+		//{
+		//	half4 specGloss = SpecularGloss(i_tex.xy);
+		//	half3 specColor = specGloss.rgb;
+		//	half oneMinusRoughness = specGloss.a;
 
-			half oneMinusReflectivity;
-			half3 diffColor = EnergyConservationBetweenDiffuseAndSpecular (Albedo(i_tex), specColor, /*out*/ oneMinusReflectivity);
+		//	half oneMinusReflectivity;
+		//	half3 diffColor = EnergyConservationBetweenDiffuseAndSpecular (Albedo(i_tex), specColor, /*out*/ oneMinusReflectivity);
 	
-			FragmentCommonData o = (FragmentCommonData)0;
-			o.diffColor = diffColor;
-			o.specColor = specColor;
-			o.oneMinusReflectivity = oneMinusReflectivity;
-			o.oneMinusRoughness = oneMinusRoughness;
-			return o;
-		}
+		//	FragmentCommonData o = (FragmentCommonData)0;
+		//	o.diffColor = diffColor;
+		//	o.specColor = specColor;
+		//	o.oneMinusReflectivity = oneMinusReflectivity;
+		//	o.oneMinusRoughness = oneMinusRoughness;
+		//	return o;
+		//}
 
 		inline FragmentCommonData MetallicSetup (float4 i_tex)
 		{
@@ -847,7 +849,7 @@ Shader "MAD/StandardV2"
 			//#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
-			#pragma shader_feature _METALLICGLOSSMAP 
+			//#pragma shader_feature _METALLICGLOSSMAP 
 			//#pragma shader_feature ___ _DETAIL_MULX2
 			//#pragma shader_feature _PARALLAXMAP
 
@@ -879,7 +881,7 @@ Shader "MAD/StandardV2"
 			//#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
-			#pragma shader_feature _METALLICGLOSSMAP
+			//#pragma shader_feature _METALLICGLOSSMAP
 			//#pragma shader_feature ___ _DETAIL_MULX2
 			//#pragma shader_feature _PARALLAXMAP
 			
