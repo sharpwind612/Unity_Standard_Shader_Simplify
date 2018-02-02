@@ -7,9 +7,10 @@ Shader "MAD/StandardV2"
 		
 		_Cutoff("Alpha Cutoff", Range(0.0, 1.0)) = 0.5
 
-		_Glossiness("Smoothness", Range(0.0, 1.0)) = 0.5
-		[Gamma] _Metallic("Metallic", Range(0.0, 1.0)) = 0.0
+		_Glossiness("Smoothness", Range(0.0, 2.0)) = 0.5
+		[Gamma] _Metallic("Metallic", Range(0.0, 2.0)) = 0.0
 		_MetallicGlossMap("Metallic", 2D) = "white" {}
+		_GlossStrength("GlossStrength", 2D) = "white" {}
 
 		_BumpScale("Scale", Float) = 1.0
 		_BumpMap("Normal Map", 2D) = "bump" {}
@@ -75,8 +76,33 @@ Shader "MAD/StandardV2"
 			#endif
 			return c;
 		}
-		//choose which mode to use
-		#define UNITY_BRDF_PBS BRDF1_Unity_PBS
+
+		half4 BRDF4_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness,
+			half3 normal, half3 viewDir,
+			UnityLight light, UnityIndirect gi)
+		{
+			half3 reflDir = reflect (viewDir, normal);
+
+			half nl = light.ndotl;
+			half nv = DotClamped (normal, viewDir);
+
+			// Vectorize Pow4 to save instructions
+			half2 rlPow4AndFresnelTerm = Pow4 (half2(dot(reflDir, light.dir), 1-nv));  // use R.L instead of N.H to save couple of instructions
+			half rlPow4 = rlPow4AndFresnelTerm.x; // power exponent must match kHorizontalWarpExp in NHxRoughness() function in GeneratedTextures.cpp
+			half fresnelTerm = rlPow4AndFresnelTerm.y;
+
+			half grazingTerm = saturate(oneMinusRoughness + (1-oneMinusReflectivity));
+
+			half3 color = BRDF3_Direct(diffColor, specColor, rlPow4, oneMinusRoughness);
+			color *= light.color * nl;
+			color += BRDF3_Indirect(diffColor, specColor, gi, grazingTerm, fresnelTerm);
+			//color = gi.diffuse;
+			//color = gi.specular;
+
+			return half4(color, 1);
+		}
+				//choose which mode to use
+		#define UNITY_BRDF_PBS BRDF3_Unity_PBS
 		//---------------------------------------
 		// Directional lightmaps & Parallax require tangent space too
 		#define _TANGENT_TO_WORLD 1 
@@ -209,6 +235,8 @@ Shader "MAD/StandardV2"
 			half2 mg;
 		#ifdef _METALLICGLOSSMAP
 			mg = tex2D(_MetallicGlossMap, uv.xy).ra;
+			mg.x *= _Metallic;
+			mg.y *= _Glossiness;
 		#else
 			mg = half2(_Metallic, _Glossiness);
 		#endif
@@ -668,7 +696,7 @@ Shader "MAD/StandardV2"
 			half atten = SHADOW_ATTENUATION(i);
 			half occlusion = Occlusion(i.tex.xy);
 			UnityGI gi = FragmentGI (s, occlusion, i.ambientOrLightmapUV, atten, mainLight);
-		
+			
 			half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);	
 			//c.rgb += UNITY_BRDF_GI (s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, occlusion, gi);
 			c.rgb += Emission(i.tex.xy);

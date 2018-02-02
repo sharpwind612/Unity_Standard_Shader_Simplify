@@ -277,10 +277,11 @@ internal class MADStandardShaderGUI : ShaderGUI
 		}
 		else if (m_WorkflowMode == WorkflowMode.Metallic)
 		{
-			if (metallicMap.textureValue == null)
-				m_MaterialEditor.TexturePropertyTwoLines(Styles.metallicMapText, metallicMap, metallic, Styles.smoothnessText, smoothness);
-			else
-				m_MaterialEditor.TexturePropertySingleLine(Styles.metallicMapText, metallicMap);
+            m_MaterialEditor.TexturePropertyTwoLines(Styles.metallicMapText, metallicMap, metallic, Styles.smoothnessText, smoothness);
+            //if (metallicMap.textureValue == null)
+            //    m_MaterialEditor.TexturePropertyTwoLines(Styles.metallicMapText, metallicMap, metallic, Styles.smoothnessText, smoothness);
+            //else
+            //    m_MaterialEditor.TexturePropertySingleLine(Styles.metallicMapText, metallicMap);
 		}
 	}
 
