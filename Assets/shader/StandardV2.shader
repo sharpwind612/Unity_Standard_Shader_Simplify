@@ -59,6 +59,24 @@ Shader "MAD/StandardV2"
 			#define UNITY_BRDF_GI BRDF_Unity_Indirect
 		#endif
 
+		inline half3 GammaToLinearSpace1 (half3 sRGB)
+		{
+			// Approximate version from http://chilliant.blogspot.com.au/2012/08/srgb-approximations-for-hlsl.html?m=1
+			return sRGB * (sRGB * (sRGB * 0.305306011h + 0.682171111h) + 0.012522878h);
+
+			// Precise version, useful for debugging.
+			//return half3(GammaToLinearSpaceExact(sRGB.r), GammaToLinearSpaceExact(sRGB.g), GammaToLinearSpaceExact(sRGB.b));
+		}
+
+		inline half3 LinearToGammaSpace1 (half3 linRGB)
+		{
+			linRGB = max(linRGB, half3(0.h, 0.h, 0.h));
+			// An almost-perfect approximation from http://chilliant.blogspot.com.au/2012/08/srgb-approximations-for-hlsl.html?m=1
+			return max(1.055h * pow(linRGB, 0.416666667h) - 0.055h, 0.h);
+	
+			// Exact version, useful for debugging.
+			//return half3(LinearToGammaSpaceExact(linRGB.r), LinearToGammaSpaceExact(linRGB.g), LinearToGammaSpaceExact(linRGB.b));
+		}
 		//-------------------------------------------------------------------------------------
 		inline half3 BRDF_Unity_Indirect (half3 baseColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness, half3 normal, half3 viewDir, half occlusion, UnityGI gi)
 		{
@@ -96,13 +114,15 @@ Shader "MAD/StandardV2"
 			half3 color = BRDF3_Direct(diffColor, specColor, rlPow4, oneMinusRoughness);
 			color *= light.color * nl;
 			color += BRDF3_Indirect(diffColor, specColor, gi, grazingTerm, fresnelTerm);
+			//color = diffColor;
+			//color = specColor;
 			//color = gi.diffuse;
 			//color = gi.specular;
-
+			color = LinearToGammaSpace1(color);
 			return half4(color, 1);
 		}
 				//choose which mode to use
-		#define UNITY_BRDF_PBS BRDF3_Unity_PBS
+		#define UNITY_BRDF_PBS BRDF4_Unity_PBS
 		//---------------------------------------
 		// Directional lightmaps & Parallax require tangent space too
 		#define _TANGENT_TO_WORLD 1 
@@ -199,6 +219,8 @@ Shader "MAD/StandardV2"
 		//		albedo = lerp (albedo, detailAlbedo, mask);
 		//	#endif
 		//#endif
+
+			//albedo = GammaToLinearSpace1(albedo);
 			return albedo;
 		}
 
@@ -235,13 +257,13 @@ Shader "MAD/StandardV2"
 		half2 MetallicGloss(float2 uv)
 		{
 			half2 mg;
-		//#ifdef _METALLICGLOSSMAP
+		#ifdef _METALLICGLOSSMAP
 			mg = tex2D(_MetallicGlossMap, uv.xy).ra;
 			mg.x *= _Metallic;
 			mg.y *= _Glossiness;
-		//#else
-		//	mg = half2(_Metallic, _Glossiness);
-		//#endif
+		#else
+			mg = half2(_Metallic, _Glossiness);
+		#endif
 			return mg;
 		}
 
@@ -260,21 +282,21 @@ Shader "MAD/StandardV2"
 			half3 normalTangent = UnpackScaleNormal(tex2D (_BumpMap, texcoords.xy), _BumpScale);
 			// SM20: instruction count limitation
 			// SM20: no detail normalmaps
-		#if _DETAIL && !defined(SHADER_API_MOBILE) && (SHADER_TARGET >= 30) 
-			half mask = DetailMask(texcoords.xy);
-			half3 detailNormalTangent = UnpackScaleNormal(tex2D (_DetailNormalMap, texcoords.zw), _DetailNormalMapScale);
-			#if _DETAIL_LERP
-				normalTangent = lerp(
-					normalTangent,
-					detailNormalTangent,
-					mask);
-			#else				
-				normalTangent = lerp(
-					normalTangent,
-					BlendNormals(normalTangent, detailNormalTangent),
-					mask);
-			#endif
-		#endif
+		//#if _DETAIL && !defined(SHADER_API_MOBILE) && (SHADER_TARGET >= 30) 
+		//	half mask = DetailMask(texcoords.xy);
+		//	half3 detailNormalTangent = UnpackScaleNormal(tex2D (_DetailNormalMap, texcoords.zw), _DetailNormalMapScale);
+		//	#if _DETAIL_LERP
+		//		normalTangent = lerp(
+		//			normalTangent,
+		//			detailNormalTangent,
+		//			mask);
+		//	#else				
+		//		normalTangent = lerp(
+		//			normalTangent,
+		//			BlendNormals(normalTangent, detailNormalTangent),
+		//			mask);
+		//	#endif
+		//#endif
 			return normalTangent;
 		}
 		//#endif
@@ -470,9 +492,9 @@ Shader "MAD/StandardV2"
 		#endif
 		};
 
-		#ifndef UNITY_SETUP_BRDF_INPUT
-			#define UNITY_SETUP_BRDF_INPUT SpecularSetup
-		#endif
+		//#ifndef UNITY_SETUP_BRDF_INPUT
+		//	#define UNITY_SETUP_BRDF_INPUT SpecularSetup
+		//#endif
 
 		//inline FragmentCommonData SpecularSetup (float4 i_tex)
 		//{
@@ -490,6 +512,12 @@ Shader "MAD/StandardV2"
 		//	o.oneMinusRoughness = oneMinusRoughness;
 		//	return o;
 		//}
+		inline half3 DiffuseAndSpecularFromMetallic1 (half3 albedo, half metallic, out half3 specColor, out half oneMinusReflectivity)
+		{
+			specColor = lerp (unity_ColorSpaceDielectricSpec.rgb, albedo, metallic);
+			oneMinusReflectivity = OneMinusReflectivityFromMetallic(metallic);
+			return albedo * oneMinusReflectivity;
+		}
 
 		inline FragmentCommonData MetallicSetup (float4 i_tex)
 		{
@@ -499,11 +527,11 @@ Shader "MAD/StandardV2"
 
 			half oneMinusReflectivity;
 			half3 specColor;
-			half3 diffColor = DiffuseAndSpecularFromMetallic (Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
+			half3 diffColor = DiffuseAndSpecularFromMetallic1 (Albedo(i_tex), metallic, /*out*/ specColor, /*out*/ oneMinusReflectivity);
 
 			FragmentCommonData o = (FragmentCommonData)0;
-			o.diffColor = diffColor;
-			o.specColor = specColor;
+			o.diffColor = GammaToLinearSpace(diffColor);
+			o.specColor = GammaToLinearSpace(specColor);
 			o.oneMinusReflectivity = oneMinusReflectivity;
 			o.oneMinusRoughness = oneMinusRoughness;
 			return o;
@@ -528,10 +556,93 @@ Shader "MAD/StandardV2"
 			return o;
 		}
 
+		inline UnityGI UnityGI_Base_MAD(UnityGIInput data, half occlusion, half3 normalWorld)
+		{
+			UnityGI o_gi;
+			ResetUnityGI(o_gi);
+
+
+			#if !defined(LIGHTMAP_ON)
+				o_gi.light = data.light;
+				o_gi.light.color *= data.atten;
+			#endif
+
+			#if UNITY_SHOULD_SAMPLE_SH
+				o_gi.indirect.diffuse = ShadeSHPerPixel (normalWorld, data.ambient);
+			#endif
+
+			//#if defined(LIGHTMAP_ON)
+			//	// Baked lightmaps
+			//	fixed4 bakedColorTex = UNITY_SAMPLE_TEX2D(unity_Lightmap, data.lightmapUV.xy);
+			//	bakedColorTex.rgb = GammaToLinearSpace1(bakedColorTex.rgb);
+			//	half3 bakedColor = DecodeLightmap(bakedColorTex);
+
+			//	#ifdef DIRLIGHTMAP_OFF
+			//		o_gi.indirect.diffuse = bakedColor;
+
+			//		#ifdef SHADOWS_SCREEN
+			//			o_gi.indirect.diffuse = MixLightmapWithRealtimeAttenuation (o_gi.indirect.diffuse, data.atten, bakedColorTex);
+			//		#endif // SHADOWS_SCREEN
+
+			//	#elif DIRLIGHTMAP_COMBINED
+			//		fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER (unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
+			//		o_gi.indirect.diffuse = DecodeDirectionalLightmap (bakedColor, bakedDirTex, normalWorld);
+
+			//		#ifdef SHADOWS_SCREEN
+			//			o_gi.indirect.diffuse = MixLightmapWithRealtimeAttenuation (o_gi.indirect.diffuse, data.atten, bakedColorTex);
+			//		#endif // SHADOWS_SCREEN
+
+			//	#elif DIRLIGHTMAP_SEPARATE
+			//		// Left halves of both intensity and direction lightmaps store direct light; right halves - indirect.
+
+			//		// Direct
+			//		fixed4 bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_LightmapInd, unity_Lightmap, data.lightmapUV.xy);
+			//		o_gi.indirect.diffuse = DecodeDirectionalSpecularLightmap (bakedColor, bakedDirTex, normalWorld, false, 0, o_gi.light);
+
+			//		// Indirect
+			//		half2 uvIndirect = data.lightmapUV.xy + half2(0.5, 0);
+			//		bakedColor = DecodeLightmap(UNITY_SAMPLE_TEX2D(unity_Lightmap, uvIndirect));
+			//		bakedDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_LightmapInd, unity_Lightmap, uvIndirect);
+			//		o_gi.indirect.diffuse += DecodeDirectionalSpecularLightmap (bakedColor, bakedDirTex, normalWorld, false, 0, o_gi.light2);
+			//	#endif
+			//#endif
+
+			//#ifdef DYNAMICLIGHTMAP_ON
+			//	// Dynamic lightmaps
+			//	fixed4 realtimeColorTex = UNITY_SAMPLE_TEX2D(unity_DynamicLightmap, data.lightmapUV.zw);
+			//	half3 realtimeColor = DecodeRealtimeLightmap (realtimeColorTex);
+
+			//	#ifdef DIRLIGHTMAP_OFF
+			//		o_gi.indirect.diffuse += realtimeColor;
+
+			//	#elif DIRLIGHTMAP_COMBINED
+			//		half4 realtimeDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicDirectionality, unity_DynamicLightmap, data.lightmapUV.zw);
+			//		o_gi.indirect.diffuse += DecodeDirectionalLightmap (realtimeColor, realtimeDirTex, normalWorld);
+
+			//	#elif DIRLIGHTMAP_SEPARATE
+			//		half4 realtimeDirTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicDirectionality, unity_DynamicLightmap, data.lightmapUV.zw);
+			//		half4 realtimeNormalTex = UNITY_SAMPLE_TEX2D_SAMPLER(unity_DynamicNormal, unity_DynamicLightmap, data.lightmapUV.zw);
+			//		o_gi.indirect.diffuse += DecodeDirectionalSpecularLightmap (realtimeColor, realtimeDirTex, normalWorld, true, realtimeNormalTex, o_gi.light3);
+			//	#endif
+			//#endif
+
+			o_gi.indirect.diffuse *= occlusion;
+			return o_gi;
+		}
+
+		inline UnityGI UnityGlobalIlluminationMAD (UnityGIInput data, half occlusion, half3 normalWorld, Unity_GlossyEnvironmentData glossIn)
+		{
+			//data.ambient.rgb = GammaToLinearSpace1(data.ambient.rgb);
+			UnityGI o_gi = UnityGI_Base_MAD(data, occlusion, normalWorld);
+			o_gi.indirect.specular = UnityGI_IndirectSpecular(data, occlusion, normalWorld, glossIn);
+			return o_gi;
+		}
+
 		inline UnityGI FragmentGI (FragmentCommonData s, half occlusion, half4 i_ambientOrLightmapUV, half atten, UnityLight light, bool reflections)
 		{
 			UnityGIInput d;
 			d.light = light;
+			//d.light.color = GammaToLinearSpace1(d.light.color);
 			d.worldPos = s.posWorld;
 			d.worldViewDir = -s.eyeVec;
 			d.atten = atten;
@@ -552,22 +663,32 @@ Shader "MAD/StandardV2"
 			d.probePosition[1] = unity_SpecCube1_ProbePosition;
 			d.probeHDR[1] = unity_SpecCube1_HDR;
 
-			if(reflections)
-			{
-				Unity_GlossyEnvironmentData g;
-				g.roughness		= 1 - s.oneMinusRoughness;
-			#if UNITY_OPTIMIZE_TEXCUBELOD || UNITY_STANDARD_SIMPLE
-				g.reflUVW 		= s.reflUVW;
-			#else
-				g.reflUVW		= reflect(s.eyeVec, s.normalWorld);
-			#endif
+			Unity_GlossyEnvironmentData g;
+			g.roughness		= 1 - s.oneMinusRoughness;
+			g.reflUVW		= reflect(s.eyeVec, s.normalWorld);
 
-				return UnityGlobalIllumination (d, occlusion, s.normalWorld, g);
-			}
-			else
-			{
-				return UnityGlobalIllumination (d, occlusion, s.normalWorld);
-			}
+			//这边由于在gamma空间下没有进行校正，需要手动将输出值进行转换
+			UnityGI gi = UnityGlobalIlluminationMAD (d, occlusion, s.normalWorld, g);
+			gi.indirect.diffuse = GammaToLinearSpace(gi.indirect.diffuse);
+			gi.indirect.specular = GammaToLinearSpace(gi.indirect.specular);
+			return gi;
+
+			//if(reflections)
+			//{
+			//	Unity_GlossyEnvironmentData g;
+			//	g.roughness		= 1 - s.oneMinusRoughness;
+			//#if UNITY_OPTIMIZE_TEXCUBELOD || UNITY_STANDARD_SIMPLE
+			//	g.reflUVW 		= s.reflUVW;
+			//#else
+			//	g.reflUVW		= reflect(s.eyeVec, s.normalWorld);
+			//#endif
+
+			//	return UnityGlobalIllumination (d, occlusion, s.normalWorld, g);
+			//}
+			//else
+			//{
+			//	return UnityGlobalIllumination (d, occlusion, s.normalWorld);
+			//}
 		}
 
 		inline UnityGI FragmentGI (FragmentCommonData s, half occlusion, half4 i_ambientOrLightmapUV, half atten, UnityLight light)
@@ -849,7 +970,7 @@ Shader "MAD/StandardV2"
 			//#pragma shader_feature _NORMALMAP
 			#pragma shader_feature _ _ALPHATEST_ON _ALPHABLEND_ON _ALPHAPREMULTIPLY_ON
 			#pragma shader_feature _EMISSION
-			//#pragma shader_feature _METALLICGLOSSMAP 
+			#pragma shader_feature _METALLICGLOSSMAP 
 			//#pragma shader_feature ___ _DETAIL_MULX2
 			//#pragma shader_feature _PARALLAXMAP
 
