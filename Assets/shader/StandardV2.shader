@@ -77,52 +77,6 @@ Shader "MAD/StandardV2"
 			// Exact version, useful for debugging.
 			//return half3(LinearToGammaSpaceExact(linRGB.r), LinearToGammaSpaceExact(linRGB.g), LinearToGammaSpaceExact(linRGB.b));
 		}
-		//-------------------------------------------------------------------------------------
-		inline half3 BRDF_Unity_Indirect (half3 baseColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness, half3 normal, half3 viewDir, half occlusion, UnityGI gi)
-		{
-			half3 c = 0;
-			#if defined(DIRLIGHTMAP_SEPARATE)
-				gi.indirect.diffuse = 0;
-				gi.indirect.specular = 0;
-
-				#ifdef LIGHTMAP_ON
-					c += UNITY_BRDF_PBS_LIGHTMAP_INDIRECT (baseColor, specColor, oneMinusReflectivity, oneMinusRoughness, normal, viewDir, gi.light2, gi.indirect).rgb * occlusion;
-				#endif
-				#ifdef DYNAMICLIGHTMAP_ON
-					c += UNITY_BRDF_PBS_LIGHTMAP_INDIRECT (baseColor, specColor, oneMinusReflectivity, oneMinusRoughness, normal, viewDir, gi.light3, gi.indirect).rgb * occlusion;
-				#endif
-			#endif
-			return c;
-		}
-
-		half4 BRDF4_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness,
-			half3 normal, half3 viewDir,
-			UnityLight light, UnityIndirect gi)
-		{
-			half3 reflDir = reflect (viewDir, normal);
-
-			half nl = light.ndotl;
-			half nv = DotClamped (normal, viewDir);
-
-			// Vectorize Pow4 to save instructions
-			half2 rlPow4AndFresnelTerm = Pow4 (half2(dot(reflDir, light.dir), 1-nv));  // use R.L instead of N.H to save couple of instructions
-			half rlPow4 = rlPow4AndFresnelTerm.x; // power exponent must match kHorizontalWarpExp in NHxRoughness() function in GeneratedTextures.cpp
-			half fresnelTerm = rlPow4AndFresnelTerm.y;
-
-			half grazingTerm = saturate(oneMinusRoughness + (1-oneMinusReflectivity));
-
-			half3 color = BRDF3_Direct(diffColor, specColor, rlPow4, oneMinusRoughness);
-			color *= light.color * nl;
-			color += BRDF3_Indirect(diffColor, specColor, gi, grazingTerm, fresnelTerm);
-			//color = diffColor;
-			//color = specColor;
-			//color = gi.diffuse;
-			//color = gi.specular;
-			color = LinearToGammaSpace1(color);
-			return half4(color, 1);
-		}
-				//choose which mode to use
-		#define UNITY_BRDF_PBS BRDF4_Unity_PBS
 		//---------------------------------------
 		// Directional lightmaps & Parallax require tangent space too
 		#define _TANGENT_TO_WORLD 1 
@@ -233,26 +187,7 @@ Shader "MAD/StandardV2"
 		{
 			half occ = tex2D(_MetallicGlossMap, uv).g;
 			return LerpOneTo (occ, _OcclusionStrength);
-		//#if (SHADER_TARGET < 30)
-		//	// SM20: instruction count limitation
-		//	// SM20: simpler occlusion
-		//	return tex2D(_OcclusionMap, uv).g;
-		//#else
-		//	half occ = tex2D(_OcclusionMap, uv).g;
-		//	return LerpOneTo (occ, _OcclusionStrength);
-		//#endif
 		}
-
-		//half4 SpecularGloss(float2 uv)
-		//{
-		//	half4 sg;
-		//#ifdef _SPECGLOSSMAP
-		//	sg = tex2D(_SpecGlossMap, uv.xy);
-		//#else
-		//	sg = half4(_SpecColor.rgb, _Glossiness);
-		//#endif
-		//	return sg;
-		//}
 
 		half2 MetallicGloss(float2 uv)
 		{
@@ -280,23 +215,6 @@ Shader "MAD/StandardV2"
 		half3 NormalInTangentSpace(float4 texcoords)
 		{
 			half3 normalTangent = UnpackScaleNormal(tex2D (_BumpMap, texcoords.xy), _BumpScale);
-			// SM20: instruction count limitation
-			// SM20: no detail normalmaps
-		//#if _DETAIL && !defined(SHADER_API_MOBILE) && (SHADER_TARGET >= 30) 
-		//	half mask = DetailMask(texcoords.xy);
-		//	half3 detailNormalTangent = UnpackScaleNormal(tex2D (_DetailNormalMap, texcoords.zw), _DetailNormalMapScale);
-		//	#if _DETAIL_LERP
-		//		normalTangent = lerp(
-		//			normalTangent,
-		//			detailNormalTangent,
-		//			mask);
-		//	#else				
-		//		normalTangent = lerp(
-		//			normalTangent,
-		//			BlendNormals(normalTangent, detailNormalTangent),
-		//			mask);
-		//	#endif
-		//#endif
 			return normalTangent;
 		}
 		//#endif
@@ -670,7 +588,7 @@ Shader "MAD/StandardV2"
 			//这边由于在gamma空间下没有进行校正，需要手动将输出值进行转换
 			UnityGI gi = UnityGlobalIlluminationMAD (d, occlusion, s.normalWorld, g);
 			gi.indirect.diffuse = GammaToLinearSpace(gi.indirect.diffuse);
-			gi.indirect.specular = GammaToLinearSpace(gi.indirect.specular);
+			gi.indirect.specular = GammaToLinearSpace(gi.indirect.specular);//
 			return gi;
 
 			//if(reflections)
@@ -734,6 +652,36 @@ Shader "MAD/StandardV2"
 
 			return ambientOrLightmapUV;
 		}
+
+		half4 BRDF4_Unity_PBS (half3 diffColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness,
+			half3 normal, half3 viewDir,
+			UnityLight light, UnityIndirect gi)
+		{
+			half3 reflDir = reflect (viewDir, normal);
+
+			half nl = light.ndotl;
+			half nv = DotClamped (normal, viewDir);
+
+			// Vectorize Pow4 to save instructions
+			half2 rlPow4AndFresnelTerm = Pow4 (half2(dot(reflDir, light.dir), 1-nv));  // use R.L instead of N.H to save couple of instructions
+			half rlPow4 = rlPow4AndFresnelTerm.x; // power exponent must match kHorizontalWarpExp in NHxRoughness() function in GeneratedTextures.cpp
+			half fresnelTerm = rlPow4AndFresnelTerm.y;
+
+			half grazingTerm = saturate(oneMinusRoughness + (1-oneMinusReflectivity));
+
+			half3 color = BRDF3_Direct(diffColor, specColor, rlPow4, oneMinusRoughness);
+			color *= light.color * nl;
+			color += BRDF3_Indirect(diffColor, specColor, gi, grazingTerm, fresnelTerm);
+			//color = diffColor;
+			//color = specColor;
+			//color = gi.diffuse;
+			//color = gi.specular;
+			//color.rgb = i_ambientOrLightmapUV.rgb;
+			color = LinearToGammaSpace1(color);
+			return half4(color, 1);
+		}
+				//choose which mode to use
+		#define UNITY_BRDF_PBS BRDF4_Unity_PBS
 
 		// ------------------------------------------------------------------
 		//  Base forward pass (directional light, emission, lightmaps, ...)
@@ -823,7 +771,7 @@ Shader "MAD/StandardV2"
 			half4 c = UNITY_BRDF_PBS (s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, gi.light, gi.indirect);	
 			//c.rgb += UNITY_BRDF_GI (s.diffColor, s.specColor, s.oneMinusReflectivity, s.oneMinusRoughness, s.normalWorld, -s.eyeVec, occlusion, gi);
 			c.rgb += Emission(i.tex.xy);
-
+			//return fixed4(i.ambientOrLightmapUV.rgb,1);
 			UNITY_APPLY_FOG(i.fogCoord, c.rgb);
 			return OutputForward (c, s.alpha);
 		}
@@ -939,6 +887,26 @@ Shader "MAD/StandardV2"
 			UnityLight light)
 		{
 			return FragmentGI (posWorld, occlusion, i_ambientOrLightmapUV, atten, oneMinusRoughness, normalWorld, eyeVec, light, true);
+		}
+
+
+
+				//-------------------------------------------------------------------------------------
+		inline half3 BRDF_Unity_Indirect (half3 baseColor, half3 specColor, half oneMinusReflectivity, half oneMinusRoughness, half3 normal, half3 viewDir, half occlusion, UnityGI gi)
+		{
+			half3 c = 0;
+			#if defined(DIRLIGHTMAP_SEPARATE)
+				gi.indirect.diffuse = 0;
+				gi.indirect.specular = 0;
+
+				#ifdef LIGHTMAP_ON
+					c += UNITY_BRDF_PBS_LIGHTMAP_INDIRECT (baseColor, specColor, oneMinusReflectivity, oneMinusRoughness, normal, viewDir, gi.light2, gi.indirect).rgb * occlusion;
+				#endif
+				#ifdef DYNAMICLIGHTMAP_ON
+					c += UNITY_BRDF_PBS_LIGHTMAP_INDIRECT (baseColor, specColor, oneMinusReflectivity, oneMinusRoughness, normal, viewDir, gi.light3, gi.indirect).rgb * occlusion;
+				#endif
+			#endif
+			return c;
 		}
 
 		VertexOutputForwardBase vertBase (VertexInput v) { return vertForwardBase(v); }
