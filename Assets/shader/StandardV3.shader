@@ -337,17 +337,16 @@ Shader "MAD/StandardV3"
 			half3 tangent = tangentToWorld[0].xyz;
 			half3 binormal = tangentToWorld[1].xyz;
 			half3 normal = tangentToWorld[2].xyz;
+			//#if UNITY_TANGENT_ORTHONORMALIZE
+			//	normal = NormalizePerPixelNormal(normal);
 
-			#if UNITY_TANGENT_ORTHONORMALIZE
-				normal = NormalizePerPixelNormal(normal);
+			//	// ortho-normalize Tangent
+			//	tangent = normalize (tangent - normal * dot(tangent, normal));
 
-				// ortho-normalize Tangent
-				tangent = normalize (tangent - normal * dot(tangent, normal));
-
-				// recalculate Binormal
-				half3 newB = cross(normal, tangent);
-				binormal = newB * sign (dot (newB, binormal));
-			#endif
+			//	// recalculate Binormal
+			//	half3 newB = cross(normal, tangent);
+			//	binormal = newB * sign (dot (newB, binormal));
+			//#endif
 
 			half3 normalTangent = NormalInTangentSpace(i_tex);
 			half3 normalWorld = NormalizePerPixelNormal(tangent * normalTangent.x + binormal * normalTangent.y + normal * normalTangent.z); // @TODO: see if we can squeeze this normalize on SM2.0 as well
@@ -478,6 +477,8 @@ Shader "MAD/StandardV3"
 			roughness = roughness*(1.7 - 0.7*roughness);
 			half mip = roughness * _SampleLOD;
 			half4 rgbm = texCUBElod (tex, half4(glossIn.reflUVW, mip)); //UNITY_SAMPLE_TEXCUBE_LOD(tex, glossIn.reflUVW, mip);
+			//return glossIn.reflUVW;
+			//rgbm =  texCUBE(tex,glossIn.reflUVW);
 			return DecodeHDR(rgbm, hdr);
 		}
 
